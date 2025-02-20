@@ -1,0 +1,856 @@
+---
+title: "DuckDB"
+subtitle: "A fast in-process analytical database / data engineering workhorse"
+author: Maurice Hickey
+format: 
+  revealjs:
+    theme: moon
+    chalkboard: false
+    drop:
+        engine: pyodide
+        pyodide:
+          packages:
+            - duckdb
+            - pandas
+date: today
+date-format: long
+transition: convex
+code-line-numbers: true
+embed-resources: true
+logo: './ddb.png'
+auto-stretch: false
+progress: true
+keyboard: true
+---
+
+# Introduction
+
+# Me
+
+## Raised
+
+::: columns
+::: {.column width="33%"}
+![](angel.jpeg)
+:::
+
+::: {.column width="33%"}
+![](tb.jpg)
+:::
+
+::: {.column width="33%"}
+```{r}
+#| echo: false
+#| fig-height: 5
+library(leaflet)
+leaflet(width=300, height=300) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  setView(-1.614, 54.973, zoom=11) %>%
+  addMarkers(lng=-1.614, lat=54.973, popup="Newcastle upon Tyne")
+```
+:::
+:::
+
+## Studied
+
+::: columns
+::: {.column width="33%"}
+![](rhc4.jpeg)
+:::
+
+::: {.column width="33%"}
+![](founders2.jpeg)
+:::
+
+::: {.column width="33%"}
+```{r}
+#| echo: false
+#| fig-height: 5
+library(leaflet)
+leaflet(width=300, height=300) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  setView(-0.55239, 51.43188, zoom=9) %>%
+  addMarkers(lng=-0.55239, lat=51.43188, popup="Royal Holloway College, Uni of London")
+```
+:::
+:::
+
+::: columns
+::: {.column width="33%"}
+![](pdp8.jpg)
+:::
+:::
+
+::: notes
+Word size	12 bits
+Maximum memory	32k words (8 4k banks)
+
+
+Power	<= 450 watts (varies with option cards)
+Size (HeightxWidthxDepth) 	10.5x19x24 inches
+Weight	100 lbs total, 45 lbs power supply
+Cost Minimum Configuration 4k memory	$4490 installation included from DEC in 1974
+  $53 per month for maintenance
+Cost in configuration shown, excluding I/O devices
+and third party boards	$14835 from DEC in 1974
+  $134 per month for maintenance
+:::
+
+## Based
+
+::: columns
+::: {.column width="33%"}
+![](16533130012318.jpeg)
+:::
+
+::: {.column width="33%"}
+![](bristol1.jpg)
+:::
+
+::: {.column width="33%"}
+```{r}
+#| echo: false
+#| fig-height: 5
+library(leaflet)
+leaflet(width=300, height=300) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  setView(-2.59665, 51.45523, zoom=9) %>%
+  addMarkers(lng=-2.59665, lat=51.45523, popup="Clockwise, Bristol")
+```
+:::
+:::
+
+::: columns
+::: {.column width="50%"}
+![](third_floor.jpg)
+:::
+
+::: {.column width="50%"}
+:::
+:::
+
+# My Workflow
+
+## Pandion Data Engineering
+
+```{mermaid}
+flowchart LR
+  A[".txt / .csv / .tsv
+    json / XML / PDF"] --> ETL(ETL)
+  B[("MySQL / Oracle /
+  MongoDB")] --> ETL
+  C[Excel / Docx] --> ETL
+  D[png / jpg] --> ETL
+  E[a.n.other] --> ETL 
+  ETL -- Ingest --> G[Snowflake]
+  ETL -- Delivery --> H[Meta]
+```
+
+## Daily Tools
+
+::: incremental
+-   sed / awk / vim(!)
+-   xsv / Miller / jq
+-   Python / Pandas
+-   Misc. - od / ripgrep / iconv / parallel / cut / sort / pandoc
+:::
+
+::: footer
+One million developers ask how to exit vim! [Exiting Vim](https://stackoverflow.blog/2017/05/23/stack-overflow-helping-one-million-developers-exit-vim/){preview-link="true"}
+:::
+
+# DuckDB
+
+## DuckDB Adoption - August 2024
+
+::: callout-note
+Jan 2024 numbers in ()
+:::
+
+::: incremental
+-   Python Client, 6 million + downloads per month (2m)
+-   17 million extension installs / month (5m)
+-   21,000 Github stars (15.5k)
+-   DB-Engines relational db ranking 35th (43rd)
+-   600k unique visitors to duckdb.org / month (500k)
+
+:::
+
+## DuckDB - What is it?
+
+::: columns
+
+::: {.column width="50%"}
+
+::: incremental
+-   Lightweight
+-   Embedded / In process
+-   Complete SQL Implementation
+-   Well suited for OLAP
+-   Brilliant as a Data Engineering pipeline component
+:::
+
+::: {.fragment .fade-in}
+and ...
+
+It's fast. 💨💨💨
+:::
+
+:::
+
+::: {.column width="50%"}
+![](db_space.jpeg)
+:::
+:::
+
+::: footer
+[Kojo's Blog](https://kojo.blog/duckdb){preview-link="true"}
+:::
+
+
+## Installation
+
+``` bash
+brew install duckdb  ↩
+```
+
+The `duckdb` executable
+
+1.  Has no dependencies
+2.  Is *small*
+
+``` {.bashc code-line-numbers="1|2"}
+exa -l (which duckdb) ↩
+.rwxr-xr-x 49M root 10 Sep 10:04 /usr/local/bin/duckdb
+```
+
+## DuckDB CLI
+
+Once installed ...
+
+``` {.bash code-line-numbers="1|8-10"}
+duckdb ↩
+
+v1.0.0 1f98600c2c
+Enter ".help" for usage hints.
+Connected to a transient in-memory database.
+Use ".open FILENAME" to reopen on a persistent database.
+⚫◗
+⚫◗ create or replace table ducks (id int, duck_name varchar);  ↩
+⚫◗ insert into ducks values (1, 'mulard'), (2, 'welsh harlequin');  ↩
+⚫◗ from ducks;  ↩
+┌───────┬─────────────────┐
+│  id   │    duck_name    │
+│ int32 │     varchar     │
+├───────┼─────────────────┤
+│     1 │ mulard          │
+│     2 │ welsh harlequin │
+└───────┴─────────────────┘
+⚫◗
+```
+
+## Persisting data
+
+``` {.bash code-line-numbers="1|5-7|15"}
+duckdb ducks.ddb  ↩
+
+v1.0.0 1f98600c2c
+Enter ".help" for usage hints.
+⚫◗ create or replace table ducks (id int, duck_name varchar);  ↩
+⚫◗ insert into ducks values (1, 'mulard'), (2, 'welsh harlequin');  ↩
+⚫◗ from ducks;  ↩
+┌───────┬─────────────────┐
+│  id   │    duck_name    │
+│ int32 │     varchar     │
+├───────┼─────────────────┤
+│     1 │ mulard          │
+│     2 │ welsh harlequin │
+└───────┴─────────────────┘
+⚫◗ .q  ↩
+```
+
+## Persisting data - 2
+
+``` {.bash code-line-numbers="2-3|5|7|10"}
+
+lsd -l ducks.ddb
+.rw-r--r-- mauriceh staff 524 KB Wed Mar  6 09:49:34 2024  ducks.ddb
+
+duckdb ducks.ddb
+-- Loading resources from /Users/mauriceh/.duckdbrc
+ducks
+v1.0.0 1f98600c2c
+Enter ".help" for usage hints.
+⚫◗ from ducks;
+┌───────┬─────────────────┐
+│  id   │    duck_name    │
+│ int32 │     varchar     │
+├───────┼─────────────────┤
+│     1 │ mulard          │
+│     2 │ welsh harlequin │
+└───────┴─────────────────┘
+Run Time (s): real 0.002 user 0.000850 sys 0.000469
+```
+
+## DuckDB file format
+
+::: incremental
+-   Single file db
+-   Suppports transactions (ACID)
+-   Data stored in compressed columnar format
+:::
+
+::: notes
+ACID
+
+-   Atomicity
+-   Consistent
+-   Isolation
+-   Durability
+
+All your ducks are not in a row!
+:::
+
+## Loading data
+
+Duckdb supports reading data from ⋯
+
+::: incremental
+-   csv / tsv
+-   Parquet
+-   httpfs
+-   S3
+-   Google Cloud Storage
+-   JSON
+-   Excel
+-   PostgreSQL / MySQL / SQLite
+:::
+
+## Loading data - csv 1
+
+Kaggle Netflix daily top 10 for 2020 `netflix_daily_top_10.csv`
+
+Inspection using the command line
+
+``` {.bash code-line-numbers="1|13"}
+xsv headers netflix_daily_top_10.csv ↩
+1   As of
+2   Rank
+3   Year to Date Rank
+4   Last Week Rank
+5   Title
+6   Type
+7   Netflix Exclusive
+8   Netflix Release Date
+9   Days In Top 10
+10  Viewership Score
+
+xsv count netflix_daily_top_10.csv  ↩
+7100
+```
+
+## Loading data - csv 2
+
+Inspection using duckdb
+
+``` {.bash code-line-numbers="1"}
+select * from read_csv_auto('./netflix_daily_top_10.csv') limit 5;  ↩
+┌────────────┬───────┬───────────────────┬────────────────┬──────────────────────────────┬─────────┬───────────────────┬──────────────────────┬────────────────┬──────────────────┐
+│   As of    │ Rank  │ Year to Date Rank │ Last Week Rank │            Title             │  Type   │ Netflix Exclusive │ Netflix Release Date │ Days In Top 10 │ Viewership Score │
+│    date    │ int64 │      varchar      │    varchar     │           varchar            │ varchar │      varchar      │       varchar        │     int64      │      int64       │
+├────────────┼───────┼───────────────────┼────────────────┼──────────────────────────────┼─────────┼───────────────────┼──────────────────────┼────────────────┼──────────────────┤
+│ 2020-04-01 │     1 │ 1                 │ 1              │ Tiger King: Murder, Mayhem … │ TV Show │ Yes               │ Mar 20, 2020         │              9 │               90 │
+│ 2020-04-01 │     2 │ 2                 │ -              │ Ozark                        │ TV Show │ Yes               │ Jul 21, 2017         │              5 │               45 │
+│ 2020-04-01 │     3 │ 3                 │ 2              │ All American                 │ TV Show │                   │ Mar 28, 2019         │              9 │               76 │
+│ 2020-04-01 │     4 │ 4                 │ -              │ Blood Father                 │ Movie   │                   │ Mar 26, 2020         │              5 │               30 │
+│ 2020-04-01 │     5 │ 5                 │ 4              │ The Platform                 │ Movie   │ Yes               │ Mar 20, 2020         │              9 │               55 │
+└────────────┴───────┴───────────────────┴────────────────┴──────────────────────────────┴─────────┴───────────────────┴──────────────────────┴────────────────┴──────────────────┘
+```
+
+## Summarize 
+
+``` {.bash code-line-numbers="2|3-19|20"}
+
+summarize select * from read_csv_auto('./netflix_daily_top_10.csv');  ↩
+┌──────────────────────┬─────────────┬───────────────┬─────────────┬───────────────┬────────────────────┬────────────────────┬─────────┬─────────┬─────────┬───────┬─────────────────┐
+│     column_name      │ column_type │      min      │     max     │ approx_unique │        avg         │        std         │   q25   │   q50   │   q75   │ count │ null_percentage │
+│       varchar        │   varchar   │    varchar    │   varchar   │     int64     │      varchar       │      varchar       │ varchar │ varchar │ varchar │ int64 │  decimal(9,2)   │
+├──────────────────────┼─────────────┼───────────────┼─────────────┼───────────────┼────────────────────┼────────────────────┼─────────┼─────────┼─────────┼───────┼─────────────────┤
+│ As of                │ DATE        │ 2020-04-01    │ 2022-03-11  │           694 │                    │                    │         │         │         │  7100 │            0.00 │
+│ Rank                 │ BIGINT      │ 1             │ 10          │            10 │ 5.5                │ 2.8724836179710516 │ 3       │ 5       │ 8       │  7100 │            0.00 │
+│ Year to Date Rank    │ VARCHAR     │ -             │ 9           │            11 │                    │                    │         │         │         │  7100 │            0.00 │
+│ Last Week Rank       │ VARCHAR     │ -             │ 9           │            11 │                    │                    │         │         │         │  7100 │            0.00 │
+│ Title                │ VARCHAR     │ #Alive        │ Ãlite       │           645 │                    │                    │         │         │         │  7100 │            0.00 │
+│ Type                 │ VARCHAR     │ Concert/Perf… │ TV Show     │             4 │                    │                    │         │         │         │  7100 │            0.00 │
+│ Netflix Exclusive    │ VARCHAR     │ Yes           │ Yes         │             1 │                    │                    │         │         │         │  7100 │           35.23 │
+│ Netflix Release Date │ VARCHAR     │ Apr 1, 2015   │ Sep 9, 2020 │           418 │                    │                    │         │         │         │  7100 │            0.00 │
+│ Days In Top 10       │ BIGINT      │ 1             │ 428         │           427 │ 24.123661971830987 │ 58.47378925134757  │ 3       │ 7       │ 18      │  7100 │            0.00 │
+│ Viewership Score     │ BIGINT      │ 1             │ 1474        │           790 │ 122.79014084507043 │ 213.86164216049585 │ 19      │ 50      │ 128     │  7100 │            0.00 │
+├──────────────────────┴─────────────┴───────────────┴─────────────┴───────────────┴────────────────────┴────────────────────┴─────────┴─────────┴─────────┴───────┴─────────────────┤
+│ 10 rows                                                                                                                                                                 12 columns │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Run Time (s): real 0.074 user 0.071562 sys 0.002216
+```
+
+## Loading data - csv 3
+
+Persisting the data to DuckDB
+
+``` {.bash code-line-numbers="1|3-5|6|15-18"}
+duckdb netflix.ddb ↩
+
+⚫◗ create or replace table netflix as
+    from read_csv_auto('./netflix_daily_top_10.csv'); ↩
+Run Time (s): real 0.040 user 0.035579 sys 0.002059
+⚫◗ select count(*) from netflix;  ↩
+┌──────────────┐
+│ count_star() │
+│    int64     │
+├──────────────┤
+│         7100 │
+└──────────────┘
+Run Time (s): real 0.003 user 0.000844 sys 0.000793
+
+⚫◗ select title, max("Days In Top 10") m10
+    from netflix
+    group by all
+    order by m10 desc limit 4; ↩
+┌───────────┬───────┐
+│   Title   │  m10  │
+│  varchar  │ int64 │
+├───────────┼───────┤
+│ Cocomelon │   428 │
+│ Ozark     │    89 │
+│ Cobra Kai │    81 │
+│ Manifest  │    80 │
+└───────────┴───────┘
+Run Time (s): real 0.002 user 0.002674 sys 0.000960
+```
+
+## Loading data - parquet
+
+``` {.bash code-line-numbers="1|5|7-8|10|12|19"}
+lsd -l *parquet ↩
+.rw-r--r-- mauriceh staff 90 KB Tue Feb 27 17:38:53 2024  output.parquet
+.rw-r--r-- mauriceh staff 46 MB Tue Feb 27 17:12:32 2024  yellow_tripdata_2023-01.parquet
+
+duckdb yellow.ddb ↩
+
+⚫◗ create or replace table yellow as
+    select * from read_parquet('./yellow_tripdata_2023-01.parquet'); ↩
+100% ▕████████████████████████████████████████████████████████████▏
+Run Time (s): real 2.224 user 1.990120 sys 0.094305
+
+⚫◗ select count(*) from yellow; ↩
+┌──────────────┐
+│ count_star() │
+│    int64     │
+├──────────────┤
+│      3066766 │
+└──────────────┘
+Run Time (s): real 0.003 user 0.003078 sys 0.000793
+```
+
+## Loading data - parquet 2
+
+Read directly from S3 as 635Mb parquet file
+
+``` {.sql code-line-numbers="2-4|6|8|31|39|60-61|81-85|103"}
+
+create or replace table hackernews as 
+select * 
+from read_parquet('https://duckdb-md-dataset-121.s3.amazonaws.com/hacker_news/hacker_news_2021.zstd.parquet');
+100% ▕████████████████████████████████████████████████████████████▏
+Run Time (s): real 12.741 user 9.512807 sys 4.250502
+
+⚫◗ show hackernews;
+┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
+│ column_name │ column_type │  null   │   key   │ default │ extra │
+│   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
+├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
+│ title       │ VARCHAR     │ YES     │         │         │       │
+│ url         │ VARCHAR     │ YES     │         │         │       │
+│ text        │ VARCHAR     │ YES     │         │         │       │
+│ dead        │ BOOLEAN     │ YES     │         │         │       │
+│ by          │ VARCHAR     │ YES     │         │         │       │
+│ score       │ BIGINT      │ YES     │         │         │       │
+│ time        │ BIGINT      │ YES     │         │         │       │
+│ timestamp   │ TIMESTAMP   │ YES     │         │         │       │
+│ type        │ VARCHAR     │ YES     │         │         │       │
+│ id          │ BIGINT      │ YES     │         │         │       │
+│ parent      │ BIGINT      │ YES     │         │         │       │
+│ descendants │ BIGINT      │ YES     │         │         │       │
+│ ranking     │ BIGINT      │ YES     │         │         │       │
+│ deleted     │ BOOLEAN     │ YES     │         │         │       │
+├─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┤
+│ 14 rows                                               6 columns │
+└─────────────────────────────────────────────────────────────────┘
+
+⚫◗ select count(*) from hackernews;
+┌──────────────┐
+│ count_star() │
+│    int64     │
+├──────────────┤
+│      4155063 │
+└──────────────┘
+
+⚫◗ select url from hackernews where url is not null limit 10;
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                              url                                                               │
+│                                                            varchar                                                             │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ https://www.reuters.com/technology/skorea-parliament-committee-votes-curb-google-apple-commission-dominance-2021-08-25/        │
+│ https://builtin.com/blockchain/non-fungible-token-nft                                                                          │
+│ https://www.freelancefalcon.com/                                                                                               │
+│ https://www.theproductslice.com/p/how-to-launch-products                                                                       │
+│ https://www.youtube.com/watch?v=RaeAhxmPodM                                                                                    │
+│ https://secureitmania.medium.com/hackthebox-htb-walk-through-curling-d2d29753b92d                                              │
+│ https://medium.com/techtofreedom/memory-management-in-python-3-popular-interview-questions-bce4bc69b69a                        │
+│ https://www.amazon.science/blog/predicting-answers-to-product-questions-using-similar-products                                 │
+│ https://spectrum.ieee.org/robotics/military-robots/to-protect-against-weaponized-drones-we-must-understand-their-key-strengths │
+│ https://sveltemag.com/types-of-hair-accessories/                                                                               │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                            10 rows                                                             │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Run Time (s): real 0.003 user 0.009673 sys 0.001882
+
+
+⚫◗ select split_part(url, '/', 3) as hld, url
+from hackernews where url is not null limit 10;
+┌──────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│           hld            │                                                              url                                                               │
+│         varchar          │                                                            varchar                                                             │
+├──────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ www.reuters.com          │ https://www.reuters.com/technology/skorea-parliament-committee-votes-curb-google-apple-commission-dominance-2021-08-25/        │
+│ builtin.com              │ https://builtin.com/blockchain/non-fungible-token-nft                                                                          │
+│ www.freelancefalcon.com  │ https://www.freelancefalcon.com/                                                                                               │
+│ www.theproductslice.com  │ https://www.theproductslice.com/p/how-to-launch-products                                                                       │
+│ www.youtube.com          │ https://www.youtube.com/watch?v=RaeAhxmPodM                                                                                    │
+│ secureitmania.medium.com │ https://secureitmania.medium.com/hackthebox-htb-walk-through-curling-d2d29753b92d                                              │
+│ medium.com               │ https://medium.com/techtofreedom/memory-management-in-python-3-popular-interview-questions-bce4bc69b69a                        │
+│ www.amazon.science       │ https://www.amazon.science/blog/predicting-answers-to-product-questions-using-similar-products                                 │
+│ spectrum.ieee.org        │ https://spectrum.ieee.org/robotics/military-robots/to-protect-against-weaponized-drones-we-must-understand-their-key-strengths │
+│ sveltemag.com            │ https://sveltemag.com/types-of-hair-accessories/                                                                               │
+├──────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 10 rows                                                                                                                                         2 columns │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Run Time (s): real 0.002 user 0.004766 sys 0.003104
+
+◗ select split_part(url, '/', 3) as hld, count(*) as cnt
+from hackernews
+where url is not null 
+group by all 
+order by cnt desc limit 10;
+┌─────────────────────┬───────┐
+│         hld         │  cnt  │
+│       varchar       │ int64 │
+├─────────────────────┼───────┤
+│ github.com          │ 13620 │
+│ www.youtube.com     │ 12842 │
+│ twitter.com         │  6967 │
+│ en.wikipedia.org    │  6218 │
+│ www.nytimes.com     │  5647 │
+│ medium.com          │  4964 │
+│ www.theguardian.com │  4244 │
+│ arstechnica.com     │  3544 │
+│ www.bloomberg.com   │  3007 │
+│ www.bbc.com         │  2996 │
+├─────────────────────┴───────┤
+│ 10 rows           2 columns │
+└─────────────────────────────┘
+Run Time (s): real 0.045 user 0.234648 sys 0.057366
+```
+
+## Extracting data
+
+``` {.bash code-line-numbers="1|3|5"}
+⚫◗ copy netflix to './output.tsv' (header, delimiter '\t'); ↩
+Run Time (s): real 0.004 user 0.003130 sys 0.000854
+⚫◗ copy netflix to './output.parquet' (format parquet); ↩
+Run Time (s): real 0.015 user 0.012970 sys 0.002177
+⚫◗ from read_parquet('./output.parquet') limit 3; ↩
+┌────────────┬───────┬───────────────────┬────────────────┬──────────────────────────────┬─────────┬───────────────────┬──────────────────────┬────────────────┬──────────────────┐
+│   As of    │ Rank  │ Year to Date Rank │ Last Week Rank │            Title             │  Type   │ Netflix Exclusive │ Netflix Release Date │ Days In Top 10 │ Viewership Score │
+│    date    │ int64 │      varchar      │    varchar     │           varchar            │ varchar │      varchar      │       varchar        │     int64      │      int64       │
+├────────────┼───────┼───────────────────┼────────────────┼──────────────────────────────┼─────────┼───────────────────┼──────────────────────┼────────────────┼──────────────────┤
+│ 2020-04-01 │     1 │ 1                 │ 1              │ Tiger King: Murder, Mayhem … │ TV Show │ Yes               │ Mar 20, 2020         │              9 │               90 │
+│ 2020-04-01 │     2 │ 2                 │ -              │ Ozark                        │ TV Show │ Yes               │ Jul 21, 2017         │              5 │               45 │
+│ 2020-04-01 │     3 │ 3                 │ 2              │ All American                 │ TV Show │                   │ Mar 28, 2019         │              9 │               76 │
+└────────────┴───────┴───────────────────┴────────────────┴──────────────────────────────┴─────────┴───────────────────┴──────────────────────┴────────────────┴──────────────────┘
+```
+
+::: callout-note
+The abbreviated SQL statement above is one of a number of SQL enhancements in DuckDB. See <https://duckdb.org/2023/08/23/even-friendlier-sql.htm>
+:::
+
+## Extracting data 2
+
+``` {.bash code-line-numbers="1|2|3"}
+⚫◗ .mode markdown ↩
+⚫◗ .once output.md ↩
+⚫◗ from netflix limit 10; ↩
+```
+
+``` {.bash code-line-numbers="1"}
+bat output.md ↩
+───────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       │ File: output.md
+───────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1   │ |   As of    | Rank | Year to Date Rank | Last Week Rank |            Title             |  Type   | Netflix Exclusive | Netflix Release Date | Days In Top 10 | Viewership Score |
+   2   │ |------------|------|-------------------|----------------|------------------------------|---------|-------------------|----------------------|----------------|------------------|
+   3   │ | 2020-04-01 | 1    | 1                 | 1              | Tiger King: Murder, Mayhem … | TV Show | Yes               | Mar 20, 2020         | 9              | 90               |
+   4   │ | 2020-04-01 | 2    | 2                 | -              | Ozark                        | TV Show | Yes               | Jul 21, 2017         | 5              | 45               |
+   5   │ | 2020-04-01 | 3    | 3                 | 2              | All American                 | TV Show |                   | Mar 28, 2019         | 9              | 76               |
+   6   │ | 2020-04-01 | 4    | 4                 | -              | Blood Father                 | Movie   |                   | Mar 26, 2020         | 5              | 30               |
+   7   │ | 2020-04-01 | 5    | 5                 | 4              | The Platform                 | Movie   | Yes               | Mar 20, 2020         | 9              | 55               |
+   8   │ | 2020-04-01 | 6    | 6                 | -              | Car Masters: Rust to Riches  | TV Show | Yes               | Sep 14, 2018         | 4              | 14               |
+   9   │ | 2020-04-01 | 7    | 10                | -              | Unorthodox                   | TV Show | Yes               | Mar 26, 2020         | 2              | 5                |
+  10   │ | 2020-04-01 | 8    | 7                 | 5              | Love is Blind                | TV Show | Yes               | Feb 13, 2020         | 9              | 40               |
+  11   │ | 2020-04-01 | 9    | 8                 | -              | Badland                      | Movie   |                   | Mar 26, 2020         | 4              | 11               |
+  12   │ | 2020-04-01 | 10   | 9                 | -              | Uncorked                     | Movie   | Yes               | Mar 27, 2020         | 4              | 15               |
+```
+
+## DuckDB Extensions
+
+``` bash
+⚫◗ select extension_name, description from duckdb_extensions(); ↩
+┌──────────────────┬────────────────────────────────────────────────────────────────────────────────────┐
+│  extension_name  │                                    description                                     │
+│     varchar      │                                      varchar                                       │
+├──────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+│ arrow            │ A zero-copy data integration between Apache Arrow and DuckDB                       │
+│ autocomplete     │ Adds support for autocomplete in the shell                                         │
+│ aws              │ Provides features that depend on the AWS SDK                                       │
+│ azure            │ Adds a filesystem abstraction for Azure blob storage to DuckDB                     │
+│ excel            │ Adds support for Excel-like format strings                                         │
+│ fts              │ Adds support for Full-Text Search Indexes                                          │
+│ httpfs           │ Adds support for reading and writing files over a HTTP(S) connection               │
+│ iceberg          │ Adds support for Apache Iceberg                                                    │
+│ icu              │ Adds support for time zones and collations using the ICU library                   │
+│ inet             │ Adds support for IP-related data types and functions                               │
+│ jemalloc         │ Overwrites system allocator with JEMalloc                                          │
+│ json             │ Adds support for JSON operations                                                   │
+│ motherduck       │ Enables motherduck integration with the system                                     │
+│ mysql_scanner    │ Adds support for connecting to a MySQL database                                    │
+│ parquet          │ Adds support for reading and writing parquet files                                 │
+│ postgres_scanner │ Adds support for connecting to a Postgres database                                 │
+│ shell            │                                                                                    │
+│ spatial          │ Geospatial extension that adds support for working with spatial data and functions │
+│ sqlite_scanner   │ Adds support for reading and writing SQLite database files                         │
+│ substrait        │ Adds support for the Substrait integration                                         │
+│ tpcds            │ Adds TPC-DS data generation and query support                                      │
+│ tpch             │ Adds TPC-H data generation and query support                                       │
+│ visualizer       │ Creates an HTML-based visualization of the query plan                              │
+├──────────────────┴────────────────────────────────────────────────────────────────────────────────────┤
+```
+
+## Extension Demo - httpfs
+
+``` {.bash code-line-numbers="1|12"}
+⚫◗ select extension_name, loaded, installed from duckdb_extensions(); ↩
+┌──────────────────┬─────────┬───────────┐
+│  extension_name  │ loaded  │ installed │
+│     varchar      │ boolean │  boolean  │
+├──────────────────┼─────────┼───────────┤
+│ arrow            │ false   │ true      │
+│ autocomplete     │ true    │ true      │
+│ aws              │ false   │ false     │
+│ azure            │ false   │ false     │
+│ excel            │ false   │ false     │
+│ fts              │ false   │ false     │
+│ httpfs           │ false   │ true      │
+│ iceberg          │ false   │ false     │
+│ icu              │ true    │ true      │
+...
+```
+
+## Extension Demo - parquet metadata
+
+``` {.bash code-line-numbers="1|2-3|23-25"}
+⚫◗ load httpfs;
+⚫◗ select file_name, name, type  
+   from parquet_schema('https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet'); ↩
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┬───────────────┬────────────┐
+│                                            file_name                                             │     name      │    type    │
+│                                             varchar                                              │    varchar    │  varchar   │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ root          │            │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ code          │ BYTE_ARRAY │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ city          │ BYTE_ARRAY │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ state         │ BYTE_ARRAY │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ country       │ BYTE_ARRAY │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ countryCode   │ BYTE_ARRAY │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ count         │ INT64      │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ latitude      │ DOUBLE     │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ longitude     │ DOUBLE     │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ region        │ BYTE_ARRAY │
+│ https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet │ pricingRegion │ BYTE_ARRAY │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┴───────────────┴────────────┤
+│ 11 rows                                                                                                             3 columns │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+⚫◗ SELECT code, city, state
+    FROM 'https://raw.githubusercontent.com/tobilg/aws-edge-locations/main/data/aws-edge-locations.parquet'
+    limit 5; ↩
+┌─────────┬─────────────┬──────────────────────┐
+│  code   │    city     │        state         │
+│ varchar │   varchar   │       varchar        │
+├─────────┼─────────────┼──────────────────────┤
+│ IAD     │ Washington  │ District of Columbia │
+│ ORD     │ Chicago     │ Illinois             │
+│ JFK     │ New York    │ New York             │
+│ ATL     │ Atlanta     │ Georgia              │
+│ LAX     │ Los Angeles │ California           │
+└─────────┴─────────────┴──────────────────────┘
+Run Time (s): real 0.960 user 0.010294 sys 0.003753
+```
+
+# Programmable DuckDB
+
+## Client APIs
+
+::: incremental
+-   C / C++ / Java
+-   Go\
+-   Node.js
+-   Python / R / Julia
+-   Rust
+-   Swift
+-   Wasm
+-   ADBC / ODBC
+:::
+
+## Python API
+
+Installed via pip
+
+`pip install duckdb`
+
+``` {.python code-line-numbers="1-3|5|7|10|19-22|34-37|39|47-51"}
+In [3]: import duckdb
+
+In [4]: import pandas as pd
+
+In [5]: pdf = pd.read_csv('./netflix_daily_top_10.csv', index_col=None)
+
+In [6]: type(pdf)
+Out[6]: pandas.core.frame.DataFrame
+
+In [7]: pdf.head()
+Out[7]:
+        As of  Rank Year to Date Rank Last Week Rank                         Title     Type Netflix Exclusive Netflix Release Date  Days In Top 10  Viewership Score
+0  2020-04-01     1                 1              1  Tiger King: Murder, Mayhem …  TV Show               Yes         Mar 20, 2020               9                90
+1  2020-04-01     2                 2              -                         Ozark  TV Show               Yes         Jul 21, 2017               5                45
+2  2020-04-01     3                 3              2                  All American  TV Show               NaN         Mar 28, 2019               9                76
+3  2020-04-01     4                 4              -                  Blood Father    Movie               NaN         Mar 26, 2020               5                30
+4  2020-04-01     5                 5              4                  The Platform    Movie               Yes         Mar 20, 2020               9                55
+
+In [8]: duckdb.sql("""select type, count(*) cnt 
+                      from pdf 
+                      group by all
+                      order by cnt desc""" )
+Out[8]:
+┌─────────────────┬───────┐
+│      Type       │  cnt  │
+│     varchar     │ int64 │
+├─────────────────┼───────┤
+│ TV Show         │  4446 │
+│ Movie           │  2611 │
+│ Stand-Up Comedy │    41 │
+│ Concert/Perf…   │     2 │
+└─────────────────┴───────┘
+
+In [9]: sum_df = duckdb.sql("""select type, count(*) cnt 
+                               from pdf 
+                               group by all 
+                               order by cnt desc""").df()
+
+In [10]: sum_df
+Out[10]:
+              Type   cnt
+0          TV Show  4446
+1            Movie  2611
+2  Stand-Up Comedy    41
+3    Concert/Perf…     2
+
+In [7]: (pdf.query('Type != ""')
+   ...: .groupby("Type")
+   ...: .size()
+   ...: .reset_index(name="cnt")
+   ...: .sort_values("cnt", ascending=False))
+Out[7]:
+              Type   cnt
+3          TV Show  4446
+1            Movie  2611
+2  Stand-Up Comedy    41
+0    Concert/Perf…     2
+```
+
+## Python Relational API
+
+``` {.python code-line-numbers="2|4-8|10-17"}
+
+In [23]: nf = con.sql("select title from netflix")
+
+In [24]: (
+    ...:     nf.aggregate("title, count(*) as cnt")
+    ...:     .order("cnt desc")
+    ...:     .limit(4)
+    ...: )
+Out[23]:
+┌───────────┬───────┐
+│   Title   │  cnt  │
+│  varchar  │ int64 │
+├───────────┼───────┤
+│ Cocomelon │   428 │
+│ Ozark     │    85 │
+│ Cobra Kai │    81 │
+│ Manifest  │    80 │
+└───────────┴───────┘
+```
+
+## Python Function API
+
+The function API allows the extension of DuckDB with Python User Defined Functions.
+
+``` {.python code-line-numbers="2-5|6-8|11|14"}
+
+In [1]: import duckdb
+   ...: from duckdb.typing import *
+   ...: from faker import Faker
+   ...:
+   ...: def generate_random_name():
+   ...:     fake = Faker()
+   ...:     return fake.name()
+   ...:
+
+In [2]: duckdb.create_function("random_name", generate_random_name, [], VARCHAR, side_effects=True)
+Out[2]: <duckdb.duckdb.DuckDBPyConnection at 0x1045e5130>
+
+In [3]: duckdb.sql("select random_name(), * from range(3)")
+Out[3]:
+┌─────────────────┬───────┐
+│  random_name()  │ range │
+│     varchar     │ int64 │
+├─────────────────┼───────┤
+│ Anna Baxter     │     0 │
+│ Roberto Charles │     1 │
+│ Andrea Mueller  │     2 │
+└─────────────────┴───────┘
+```
+
+# Wrap-up ![](https://duckdb.org/images/blog/bird-dance.gif)
+
+## Resources
+
+-   [duckdb.org](https://duckdb.org){preview-link="true"} - documentation
+-   [motherduck.com](https://motherduck.com){preview-link="true"} - DuckDB cloud / serverless
+-   [harlequin.sh](https://harlequin.sh/){preview-link="true"} - a TUI for DuckDB
+-   [github.com/davidgasquez/awesome-duckdb](https://github.com/davidgasquez/awesome-duckdb){preview-link="true"} - list of DuckDB resources
+-   [github.com/duckdb/duckdb](https://github.com/duckdb/duckdb){preview-link="true"} - DuckDB github
+-   [db-engines.com/en/ranking/relational+dbms](https://db-engines.com/en/ranking/relational+dbms){preview-link="true"} - Database rankings
+
+#
+
+![](i_use_vim.jpeg)
+
