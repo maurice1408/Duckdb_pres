@@ -161,19 +161,19 @@ One million developers ask how to exit vim! [Exiting Vim](https://stackoverflow.
 
 # DuckDB
 
-## DuckDB Adoption - August 2024
+## DuckDB Adoption - January 2025
 
 ::: callout-note
-Jan 2024 numbers in ()
+Aug 2024 numbers in ()
 :::
 
 ::: incremental
--   Python Client, 6 million + downloads per month (2m)
--   17 million extension installs / month (5m)
--   21,000 Github stars (15.5k)
--   DB-Engines relational db ranking 35th (43rd)
--   600k unique visitors to duckdb.org / month (500k)
-
+-   10 Million downloads / month (6m)
+-   32 million extension installs / month (17m)
+-   26,000 Github stars (21.5k)
+-   DB-Engines relational db ranking 33rd (35th)
+-   1.8m unique visitors to duckdb.org / month (600k)
+ 
 :::
 
 ## DuckDB - What is it?
@@ -221,7 +221,7 @@ The `duckdb` executable
 
 ``` {.bashc code-line-numbers="1|2"}
 exa -l (which duckdb) ↩
-.rwxr-xr-x 49M root 10 Sep 10:04 /usr/local/bin/duckdb
+.rwxr-xr-x 50M root  5 Feb 15:57 /usr/local/bin/duckdb
 ```
 
 ## DuckDB CLI
@@ -231,7 +231,7 @@ Once installed ...
 ``` {.bash code-line-numbers="1|8-10"}
 duckdb ↩
 
-v1.0.0 1f98600c2c
+v1.2.0 5f5512b827
 Enter ".help" for usage hints.
 Connected to a transient in-memory database.
 Use ".open FILENAME" to reopen on a persistent database.
@@ -254,7 +254,7 @@ Use ".open FILENAME" to reopen on a persistent database.
 ``` {.bash code-line-numbers="1|5-7|15"}
 duckdb ducks.ddb  ↩
 
-v1.0.0 1f98600c2c
+v1.2.0 5f5512b827
 Enter ".help" for usage hints.
 ⚫◗ create or replace table ducks (id int, duck_name varchar);  ↩
 ⚫◗ insert into ducks values (1, 'mulard'), (2, 'welsh harlequin');  ↩
@@ -279,7 +279,7 @@ lsd -l ducks.ddb
 duckdb ducks.ddb
 -- Loading resources from /Users/mauriceh/.duckdbrc
 ducks
-v1.0.0 1f98600c2c
+v1.2.0 5f5512b827
 Enter ".help" for usage hints.
 ⚫◗ from ducks;
 ┌───────┬─────────────────┐
