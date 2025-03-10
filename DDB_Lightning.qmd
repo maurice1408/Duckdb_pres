@@ -200,6 +200,8 @@ It's fast. 💨💨💨
 
 ::: {.column width="50%"}
 ![](db_space.jpeg)
+
+In the last 3 years, DuckDB has become 3‑25× faster and can analyze ~10× larger datasets all on the same hardware.
 :::
 :::
 
@@ -210,9 +212,30 @@ It's fast. 💨💨💨
 
 ## Installation
 
+### macOS
+
 ``` bash
 brew install duckdb  ↩
 ```
+
+### Linux 
+
+``` bash
+curl https://install.duckdb.org | sh
+```
+
+### Windows
+
+``` bash
+pip install duckdb
+```
+
+### WASM
+
+[shell.duckdb.org](shell.duckdb.org)
+
+
+## The DuckDB CLI
 
 The `duckdb` executable
 
@@ -228,7 +251,7 @@ exa -l (which duckdb) ↩
 
 Once installed ...
 
-``` {.bash code-line-numbers="1|8-10"}
+```{.bash code-line-numbers="1|8-10"}
 duckdb ↩
 
 v1.2.0 5f5512b827
@@ -298,6 +321,7 @@ Run Time (s): real 0.002 user 0.000850 sys 0.000469
 -   Single file db
 -   Suppports transactions (ACID)
 -   Data stored in compressed columnar format
+-   Is _not_ Parquet
 :::
 
 ::: notes
@@ -316,13 +340,12 @@ All your ducks are not in a row!
 Duckdb supports reading data from ⋯
 
 ::: incremental
--   csv / tsv
+-   csv / tsv / json
 -   Parquet
 -   httpfs
--   S3
+-   S3 / Iceberg (read only) / Delta Lake (read only)
 -   Google Cloud Storage
--   JSON
--   Excel
+-   Excel / Google Sheets
 -   PostgreSQL / MySQL / SQLite
 :::
 
@@ -711,7 +734,7 @@ Run Time (s): real 0.960 user 0.010294 sys 0.003753
 
 ::: incremental
 -   C / C++ / Java
--   Go\
+-   Go
 -   Node.js
 -   Python / R / Julia
 -   Rust
@@ -731,12 +754,12 @@ In [3]: import duckdb
 
 In [4]: import pandas as pd
 
-In [5]: pdf = pd.read_csv('./netflix_daily_top_10.csv', index_col=None)
+In [5]: df = pd.read_csv('./netflix_daily_top_10.csv', index_col=None)
 
-In [6]: type(pdf)
+In [6]: type(df)
 Out[6]: pandas.core.frame.DataFrame
 
-In [7]: pdf.head()
+In [7]: df.head()
 Out[7]:
         As of  Rank Year to Date Rank Last Week Rank                         Title     Type Netflix Exclusive Netflix Release Date  Days In Top 10  Viewership Score
 0  2020-04-01     1                 1              1  Tiger King: Murder, Mayhem …  TV Show               Yes         Mar 20, 2020               9                90
@@ -746,7 +769,7 @@ Out[7]:
 4  2020-04-01     5                 5              4                  The Platform    Movie               Yes         Mar 20, 2020               9                55
 
 In [8]: duckdb.sql("""select type, count(*) cnt 
-                      from pdf 
+                      from df 
                       group by all
                       order by cnt desc""" )
 Out[8]:
@@ -761,7 +784,7 @@ Out[8]:
 └─────────────────┴───────┘
 
 In [9]: sum_df = duckdb.sql("""select type, count(*) cnt 
-                               from pdf 
+                               from df 
                                group by all 
                                order by cnt desc""").df()
 
@@ -773,7 +796,7 @@ Out[10]:
 2  Stand-Up Comedy    41
 3    Concert/Perf…     2
 
-In [7]: (pdf.query('Type != ""')
+In [7]: (df.query('Type != ""')
    ...: .groupby("Type")
    ...: .size()
    ...: .reset_index(name="cnt")
